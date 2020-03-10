@@ -154,3 +154,83 @@ public class BossController1 : MonoBehaviour {
         isMoving = true;
     }
 }
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BossAttack : MonoBehaviour
+{
+    //Sound && Audio
+    AudioSource audioSrc;
+    [SerializeField] AudioClip attackSfx;
+
+    //Normal Atk
+    private bool attacking;
+    private bool DoAttack = false;
+    private float attackTimer = 0;
+    private float attackCd = 5.0f;
+    private float doAnim = 0;
+    
+
+    //Initialize the component
+    public Collider2D attackTrigger;
+    private Animator anim;
+    // Use this for initialization
+    void Awake()
+    {
+        anim = gameObject.GetComponent<Animator>();
+        attackTrigger.enabled = false;
+        audioSrc = GetComponent<AudioSource>();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        // Do normal Attack
+        if (DoAttack == true && !attacking)
+        {
+            attacking = true;
+            attackTimer = attackCd;
+            attackTrigger.enabled = true;
+
+        }
+
+        if (attacking)
+        {
+            if (attackTimer > 0)
+            {
+                attackTimer -= Time.deltaTime;
+                
+
+                if(doAnim == 0)
+                {
+                    // do the attack animation 
+                    anim.SetBool("isAttacking", attacking);
+
+                    doAnim = 1;
+                    audioSrc.PlayOneShot(attackSfx);
+                }
+                
+            }
+            else
+            {
+                doAnim = 0;
+                anim.SetBool("isAttacking", false);
+                DoAttack = false;
+                attacking = false;
+                attackTrigger.enabled = false;
+            }
+        }
+
+
+    }
+
+    public void OnAttack()
+    {
+        
+        DoAttack = true;
+    }
+
+}
+
