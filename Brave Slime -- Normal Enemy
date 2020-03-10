@@ -1,0 +1,166 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class EnemySlime : MonoBehaviour {
+
+    private bool isAlive;
+    public float EnemyHp;
+    private float speed = 1.5f;
+    private bool isMoving;
+    public GameObject Life;
+    private Animator anim;
+    private PlayerController player;
+    private bool movingRight = true;
+    public Transform groundDetection;
+    public bool isAttack = true;
+    public int score;
+    
+
+    // Use this for initialization
+    void Start()
+    {
+        isAlive = true;
+        anim = GetComponent<Animator>();
+        player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
+        isMoving = false;
+        isAttack = false;
+        StartCoroutine(DoRandomAction());
+    }
+
+    // Update is called once per frame
+    void Update () {
+        anim.SetBool("isIdle", true);
+        anim.SetBool("isWalking", false);
+        anim.SetBool("isAttacking", false);
+
+        if(isAlive == true)
+        {
+            Patrol();
+        }
+        
+    }
+
+    void Patrol()
+    {
+        if (isMoving == true)
+        {
+            anim.SetBool("isIdle", false);
+            anim.SetBool("isWalking", true);
+            // Patrol
+            transform.Translate(Vector2.right * speed * Time.deltaTime);
+            WhereToMove();
+            StartCoroutine(DoIdle());
+
+        }
+        else if(isMoving == false)
+        {
+            anim.SetBool("isIdle", true);
+            StartCoroutine(DoPatrol());
+        }
+    }
+
+    void WhereToMove()
+    {
+        RaycastHit2D groundInfo = Physics2D.Raycast(groundDetection.position, Vector2.down, 0.2f);
+        RaycastHit2D frontInfo = Physics2D.Raycast(groundDetection.position, Vector2.right, 0.2f);
+        if (groundInfo.collider == false)
+        {
+            if (movingRight == true)
+            {
+                transform.eulerAngles = new Vector3(0, -180, 0);
+                movingRight = false;
+            }
+            else
+            {
+                transform.eulerAngles = new Vector3(0, 0, 0);
+                movingRight = true;
+            }
+            StartCoroutine(DoIdle());
+        }
+
+        if (frontInfo.collider == true)
+        {
+            if (movingRight == true)
+            {
+                transform.eulerAngles = new Vector3(0, -180, 0);
+                movingRight = false;
+            }
+            else
+            {
+                transform.eulerAngles = new Vector3(0, 0, 0);
+                movingRight = true;
+            }
+            StartCoroutine(DoIdle());
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (EnemyHp > 0)
+        {
+            EnemyHp -= damage;
+        }
+        if (EnemyHp <= 0)
+        {
+            isAlive = false;
+            anim.SetBool("Die", true);
+            Destroy(gameObject, 0.6f);
+
+        }
+    }
+
+    void OnDestroy()
+    {
+        int random = Random.Range(0, 2);
+        switch (random)
+        {
+            case 0:
+                // Do nothing
+                break;
+            case 1:
+                Instantiate(Life, transform.position, Quaternion.identity);
+                break;
+        };
+        Scorescript.scoreValue += score;
+        player.RageMeter += 10;
+    }
+
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.tag == "Player")
+        {
+            if (!player.invulnerable)
+            {
+                player.Hurt(1);                    // Set Slime damage here//
+            }
+        }
+    }
+    IEnumerator DoRandomAction()
+    {
+        yield return new WaitForSeconds(0f);
+        int random = Random.Range(0, 2);
+        switch (random)
+        {
+            case 0:
+                isMoving = false;
+                break;
+            case 1:
+                isMoving = true;
+                break;
+        };
+    }
+
+    IEnumerator DoIdle()
+    {
+        yield return new WaitForSeconds(5f);
+        isMoving = false;
+    }
+
+    IEnumerator DoPatrol()
+    {
+        yield return new WaitForSeconds(5f);
+        isMoving = true;
+
+    }
+}
