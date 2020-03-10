@@ -1,0 +1,167 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerAttack : MonoBehaviour {
+
+    //Normal Atk
+    private bool attacking;
+    private bool DoAttack = false;
+    private float attackTimer = 0;
+    private float attackCd = 0.1f;
+
+    //Special Move
+    private bool DoSpecialAttack = false;
+    private bool specialAttaking;
+
+    //Initialize the component
+    public Collider2D attackTrigger;
+    public Collider2D SpecAttackTrigger;
+    private Animator anim;
+    private PlayerController player;
+
+    //Sound && Audio
+    AudioSource audioSrc;
+    [SerializeField] AudioClip attackSfx;
+    [SerializeField] AudioClip specialAttackSfx;
+
+    // Use this for initialization
+    void Awake() {
+        anim = gameObject.GetComponent<Animator>();
+        attackTrigger.enabled = false;
+        SpecAttackTrigger.enabled = false;
+        player = GetComponent<PlayerController>();
+        audioSrc = GetComponent<AudioSource>();
+    }
+
+    // Update is called once per frame
+    void Update() {
+        
+        if(player.RageMode == true)
+        {
+            //Do Special move
+            if (DoSpecialAttack == true && !specialAttaking)
+            {
+                specialAttaking = true;
+                attackTimer = 10f;
+                SpecAttackTrigger.enabled = true;
+            }
+
+            if (specialAttaking)
+            {
+                if (attackTimer > 0)
+                {
+                    attackTimer -= Time.deltaTime;
+                    SpecAttackTrigger.enabled = true;
+                }
+                else
+                {
+                    DoSpecialAttack = false;
+                    specialAttaking = false;
+                    SpecAttackTrigger.enabled = false;
+                }
+                // do the attack animation
+                anim.SetBool("SpecialMove", specialAttaking);
+            }
+        }
+        else
+        {
+            DoSpecialAttack = false;
+            specialAttaking = false;
+            SpecAttackTrigger.enabled = false;
+        }
+
+        // Do normal Attack
+        if (DoAttack == true && !attacking)
+        {
+            attacking = true;
+            attackTimer = attackCd;
+            attackTrigger.enabled = true;
+        }
+
+        if (attacking)
+        {
+            
+            if (attackTimer > 0)
+            {
+                attackTimer -= Time.deltaTime;
+            }
+            else
+            {
+                DoAttack = false;
+                attacking = false;
+                attackTrigger.enabled = false;
+            }
+            // do the attack animation
+            anim.SetBool("attacking", attacking);
+            
+        }
+
+
+    }
+
+    private void FixedUpdate()
+    {
+        if (Input.GetKeyDown(KeyCode.J))
+        {
+            OnAttack(); 
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            SpecialAttack();
+        }
+    }
+
+    public void OnAttack()
+    {
+        audioSrc.PlayOneShot(attackSfx);
+        DoAttack = true;
+    }
+
+    public void SpecialAttack()
+    {
+        player.specButton.SetActive(false);
+        audioSrc.PlayOneShot(specialAttackSfx);
+        DoSpecialAttack = true;
+    }
+
+}
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class attackTrigger : MonoBehaviour {
+
+    public int damage;
+    private PlayerController player;
+
+    private void Start()
+    {
+        player = GetComponentInParent<PlayerController>();
+    }
+
+    private void Update()
+    {
+        if (player.RageMode)
+        {
+            damage = 10;
+        }else
+        {
+            damage = 5;
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Enemy"))
+        { 
+            print("HIt");
+            collision.SendMessageUpwards("TakeDamage", damage);
+        }
+    }
+}
+
+
+
