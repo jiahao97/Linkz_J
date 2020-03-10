@@ -1,0 +1,156 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
+public class BossController1 : MonoBehaviour {
+
+    [SerializeField] private Image healthbar;
+    public float BossHp ;
+    public float BossMaxHp;
+    private float speed = 1f;
+    public float engaugeDistance;
+    public float attackDistance;
+    private float initialHealBarWidth;
+
+    private bool isMoving;
+    private bool movingRight = true;
+
+    public Transform target;
+    private Animator anim;
+    private PlayerController player;
+    private BossAttack bossAttack;
+    public Transform groundDetection;
+    public int scorevalue;
+
+    // Use this for initialization
+    void Start () {
+        anim = GetComponent<Animator>();
+        player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
+        initialHealBarWidth = healthbar.transform.localScale.x;
+        isMoving = false;
+        bossAttack = GetComponent<BossAttack>();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        anim.SetBool("isIdle", true);
+        anim.SetBool("isWalking", false);
+
+        if (player.isAlive)
+        {
+            // get the direction from the player
+            Vector3 direction = target.position - transform.position;
+
+            if (direction.magnitude >= attackDistance)
+            {
+                Patrol();
+            }
+
+            if (direction.magnitude <= attackDistance)
+            {
+                bossAttack.OnAttack();
+            }
+
+        }
+        
+
+    }
+
+
+    void Patrol()
+    {
+        if (isMoving == true)
+        {
+            anim.SetBool("isIdle", false);
+            anim.SetBool("isWalking", true);
+            // Patrol
+            transform.Translate(Vector2.right * speed * Time.deltaTime);
+            WhereToMove();
+            StartCoroutine(DoIdle());
+
+        }
+        else if (isMoving == false)
+        {
+            anim.SetBool("isIdle", true);
+            StartCoroutine(DoPatrol());
+        }
+    }
+
+    void WhereToMove()
+    {
+        RaycastHit2D groundInfo = Physics2D.Raycast(groundDetection.position, Vector2.down, 0.2f);
+
+        if (groundInfo.collider == false)
+        {
+            if (movingRight == true)
+            {
+                transform.eulerAngles = new Vector3(0, -180, 0);
+                movingRight = false;
+            }
+            else
+            {
+                transform.eulerAngles = new Vector3(0, 0, 0);
+                movingRight = true;
+            }
+            StartCoroutine(DoIdle());
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (BossHp > 0)
+        {
+            BossHp -= damage;
+            healthbar.transform.localScale = new Vector3(BossHp / (float)BossMaxHp * initialHealBarWidth, healthbar.transform.localScale.y, healthbar.transform.localScale.z);
+
+        }
+        if (BossHp <= 0)
+        {
+            anim.SetBool("Die", true);
+            Destroy(gameObject, 0.7f);
+            Destroy(healthbar.gameObject.transform.parent.gameObject);
+            Scorescript.scoreValue += scorevalue;
+            player.PlayerScore();
+            Debug.Log("BossDie");
+            SceneManager.LoadScene(3);                          //Winning Scene
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Player"))
+        {
+            StartCoroutine(turnBack());
+        } 
+    }
+
+    IEnumerator turnBack()
+    {
+        yield return new WaitForSeconds(1f);
+        if (movingRight == true)
+        {
+            transform.eulerAngles = new Vector3(0, -180, 0);
+            movingRight = false;
+        }
+        else
+        {
+            transform.eulerAngles = new Vector3(0, 0, 0);
+            movingRight = true;
+        }
+    }
+
+    IEnumerator DoIdle()
+    {
+        yield return new WaitForSeconds(5f);
+        isMoving = false;
+    }
+
+    IEnumerator DoPatrol()
+    {
+        yield return new WaitForSeconds(5f);
+        isMoving = true;
+    }
+}
