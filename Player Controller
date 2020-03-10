@@ -1,0 +1,308 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public class PlayerController : MonoBehaviour {
+
+    //Initialize the component
+    private Animator anim;
+    private Rigidbody2D rbody;
+    [SerializeField ]private Scorescript scorescr;
+
+    //Character movement
+    [SerializeField] private float speed;
+    [SerializeField] private float jumpHeight;
+    private int jumpCount = 0;
+
+    //Sound && Audio
+    AudioSource audioSrc;
+    [SerializeField] AudioClip GethurClip;
+    [SerializeField] AudioClip jumpClip;
+    [SerializeField] AudioClip healClip;
+    [SerializeField] AudioClip DeapClip;
+    [SerializeField] AudioClip OnRageClip;
+
+    // Player Status (Died / Alive)
+    public bool isAlive = true;
+    [SerializeField] const int MaxHp = 5;
+    public int Hp = MaxHp;
+    public float invulnerableTimer;
+    public bool invulnerable = true;
+    
+
+    //Change between Normal Mode and Rage Mode
+    public bool RageMode = false;
+    public float RageMeter = 0;
+    public float RageTimer = 10f;
+    //Special Move
+    public GameObject specButton;
+
+
+    ///Move the player
+    bool pointerDownLeft = false;
+    bool pointerDownRight = false;
+
+    // Use this for initialization
+    void Start () {
+        anim = GetComponent<Animator>();
+        rbody = GetComponent<Rigidbody2D>();
+        audioSrc = GetComponent<AudioSource>();
+        audioSrc.Play();
+        specButton.SetActive(false);
+
+    }
+
+    // Update is called once per frame
+    void Update() {
+
+        //Kim add 20190612
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Application.Quit();
+        }
+
+        //Move the Player
+        if (isAlive)
+        {
+            float deltaX = 0;
+            /////////////////////
+            if (Input.GetKey(KeyCode.A))
+            {
+                deltaX = -1;
+            }
+            if (Input.GetKey(KeyCode.D))
+            {
+                deltaX = 1;
+            }
+            ///////////////////
+            if (pointerDownLeft)
+            {
+                deltaX = -1;
+            }
+
+            if (pointerDownRight)
+            {
+                deltaX = 1;
+            }
+
+            transform.Translate(deltaX * speed * Time.deltaTime, 0, 0);
+
+            //do the animation
+            anim.SetFloat("speed", Mathf.Abs(deltaX));   //Mathf.abs = make any negative number become positive
+
+            //Flip left and right
+            if ((deltaX > 0 && transform.localScale.x < 0) ||
+                    (deltaX < 0 && transform.localScale.x > 0))
+            {
+                transform.localScale = new Vector3(-transform.localScale.x, transform.localScale.y, transform.localScale.z);
+
+            }
+
+            //Invulnerable
+            if (invulnerableTimer <= 0)
+            {
+                invulnerable = false;
+            }
+            else
+            {
+                invulnerable = true;
+                invulnerableTimer -= Time.deltaTime;
+            }
+
+
+            //On Rage Mode function
+            if (RageMeter >= 100)
+            {
+                if (!RageMode)
+                {
+                    audioSrc.PlayOneShot(OnRageClip);
+                    specButton.SetActive(true);
+                }
+                RageMode = true;
+            }
+            else if (RageMeter <= 100)
+            {
+                specButton.SetActive(false);
+                RageMode = false;
+            }
+            OnRageMode();
+        }
+
+    }
+    void FixedUpdate()
+    {
+
+        if (Input.GetKeyDown(KeyCode.Space))
+       {
+            Jump();
+        }
+    }
+
+    //Move the player
+    public void OnPointerDownLeft()
+    {
+        pointerDownLeft = true;
+    }
+    public void OnPointerUpLeft()
+    {
+        pointerDownLeft = false;
+    }
+    //Move Right
+    public void OnPointerDownRight()
+    {
+        pointerDownRight = true;
+    }
+    public void OnPointerUpRight()
+    {
+        pointerDownRight = false;
+    }
+
+    //Player function
+    public void Jump()
+    {
+        if (isAlive)
+        {
+            if (rbody.velocity.y == 0)
+            {
+                jumpCount = 0;
+            }
+
+            if (jumpCount < 2)
+            {
+                rbody.velocity = new Vector2(rbody.velocity.x, jumpHeight);
+                jumpCount++;
+                audioSrc.PlayOneShot(jumpClip);
+            }
+            anim.SetTrigger("jump");
+        }
+    }
+
+    public void Hurt(int Damage)
+    {
+        if (Hp > 0)
+        {
+            Hp -= Damage;
+            invulnerableTimer += 1.0f;
+            anim.SetTrigger("gethurt");
+            audioSrc.PlayOneShot(GethurClip);
+        }
+        if (Hp <= 0)
+        {
+            PlayerScore();
+            isAlive = false;
+            anim.SetTrigger("die");
+            audioSrc.PlayOneShot(DeapClip);
+            print("player");
+            StartCoroutine(TransitionToGameOverScene());
+        }
+    }
+
+    public void Heal(int heal)
+    {
+        audioSrc.PlayOneShot(healClip);
+        if (Hp < MaxHp)
+        {
+            Hp += heal;
+        }
+    }
+
+    void OnRageMode()
+    {
+        if (RageMode == false){
+            anim.SetLayerWeight(1, 0);  //base layer
+        }
+        else
+        {
+            anim.SetLayerWeight(1, 1);  //rage layer
+            OnRageTime();
+        }
+    }
+
+    void OnRageTime()
+    {
+        if (RageMode == true)
+        {
+            RageTimer = RageTimer - Time.deltaTime;
+            speed = 4;
+
+            if (RageTimer <= 0)
+            {
+                RageMode = false;
+                RageTimer = 10f;
+                RageMeter = 0;
+                speed = 3;
+
+            }
+        }
+    }
+
+    public void PlayerScore()
+    {
+        int score = Scorescript.scoreValue;
+        PlayerPrefs.SetInt("Score", score);
+        float highScore = PlayerPrefs.GetInt("HighScore", 0);
+        //Debug.Log("old highscore" + highScore);
+
+        if (score > highScore)
+        {
+            PlayerPrefs.SetInt("HighScore", score);
+
+            scorescr.SetScoreText("Score:" + (int)score);
+        }
+        else
+        {
+            scorescr.SetScoreText("Score:" + (int)score);
+        }
+    }
+
+    // Collider function
+    private void OnCollisionEnter2D(Collision2D collision) //this function is automatically called when
+    {                                                      //another collider enter player's collider
+        if (collision.gameObject.CompareTag("Wall"))
+        {
+            CameraFollow.SetStopFollow(true);              //To avoid camera jitter when player bumps wall
+        }
+
+    }
+
+    private void OnCollisionExit2D(Collision2D collision) //this function is automatically called when
+    {                                                     // another collider exit player's collider
+        if (collision.gameObject.CompareTag("Wall"))
+        {
+            CameraFollow.SetStopFollow(false);
+        }
+    }
+
+
+    // Ienumerator function
+    public IEnumerator KnockBack(float knockDur, float knockBackPwr, Vector3 knockBackDir)
+    {
+
+        float timer = 0;
+        while (knockDur > timer)
+        {
+            timer += Time.deltaTime;
+            rbody.velocity = new Vector2(0, 0);   //<----------------------
+            //rbody.AddForce(new Vector3(knockBackDir.x * -100, knockBackDir.y * knockBackPwr, transform.position.z)); // original
+            rbody.AddForce(new Vector3(knockBackDir.x * -100, knockBackDir.y * knockBackPwr, transform.position.z)); // for enemy hit me
+
+        }
+        yield return 0;
+
+    }
+
+    public IEnumerator TransitionToGameOverScene()
+    {
+        yield return new WaitForSeconds(0.5f);
+        SceneManager.LoadScene(4);
+    }
+
+    public IEnumerator WinGame()
+    {
+        yield return new WaitForSeconds(1f);
+        PlayerScore();
+        SceneManager.LoadScene(3);
+    }
+}
