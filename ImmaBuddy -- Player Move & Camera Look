@@ -1,0 +1,117 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+
+public class PlayerMove : MonoBehaviour {
+
+    //Player movement
+    [SerializeField] private string horizontalInputName;
+    [SerializeField] private string verticalInputName;
+    [SerializeField] public float movementspeed;
+    // Move upward
+    [SerializeField] private float slopeForce;
+    [SerializeField] private float slopeForceRayLength;
+    // call the character controller
+    private CharacterController charController;
+    // Do Jump function
+    [SerializeField] private AnimationCurve jumpFalloff;
+    [SerializeField] private float jumpMultiplier;
+    [SerializeField] private KeyCode jumpkey;
+
+    public PlayerLook mouseSensitive;
+    private float mouseHorizontal;
+    public bool key = false;
+    private bool isJumping;
+
+    // Audio function
+    AudioSource audioSrc;
+    [SerializeField] AudioClip footstepClip;
+    //[SerializeField] AudioClip jumpClip;
+
+
+
+
+    private void Awake()
+    {
+        audioSrc = GetComponent<AudioSource>();
+        charController = GetComponent<CharacterController>();
+        mouseSensitive = GetComponentInChildren<PlayerLook>();
+
+    }
+
+    private void Update()
+    {
+        PlayerMovement();
+    }
+
+    private void PlayerMovement()
+    {
+        float horizInput = Input.GetAxis(horizontalInputName);
+        float vertInput = Input.GetAxis(verticalInputName);
+        
+        Vector3 forwardMovement = transform.forward * vertInput;
+        Vector3 rightMovement = transform.right * horizInput;
+        
+
+        charController.SimpleMove(Vector3.ClampMagnitude(forwardMovement + rightMovement, 1.0f) * movementspeed);
+        
+
+        if ((vertInput != 0 || horizInput != 0) && onSlope())
+        {
+            charController.Move(Vector3.down * charController.height / 2 * slopeForce * Time.deltaTime);
+        }
+        
+        
+            if ((!audioSrc.isPlaying && Mathf.Abs(horizInput) > 0.03f) || (!audioSrc.isPlaying && Mathf.Abs(vertInput) > 0.03f))
+                audioSrc.PlayOneShot(footstepClip);
+
+
+        JumpInput();
+    }
+
+    private bool onSlope()
+    {
+        if (isJumping)
+            return false;
+
+        RaycastHit hit;
+
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, charController.height / 2 * slopeForceRayLength))
+            if (hit.normal != Vector3.up)
+                return true;
+        return false;
+    }
+
+    private void JumpInput()
+    {
+        if(Input.GetKeyDown(KeyCode.Space) && !isJumping)
+        {
+            isJumping = true;
+            //audioSrc.PlayOneShot(jumpClip);
+            //print("Jumped");
+
+            StartCoroutine(JumpEvent());
+        }
+    }
+
+    private IEnumerator JumpEvent()
+    {
+        charController.slopeLimit = 90.0f;
+        float timeInAir = 0.0f;
+
+        do
+        {
+            float jumpForce = jumpFalloff.Evaluate(timeInAir);
+            charController.Move(Vector3.up * jumpForce * jumpMultiplier * Time.deltaTime);
+            timeInAir += Time.deltaTime;
+            
+
+            yield return null;
+        } while (!charController.isGrounded && charController.collisionFlags != CollisionFlags.Above);
+
+        charController.slopeLimit = 45.0f;
+        isJumping = false;
+    }
+
+}
