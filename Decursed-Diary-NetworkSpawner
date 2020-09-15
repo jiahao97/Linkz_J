@@ -1,0 +1,22 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+
+public class LockerSpawn : NetworkBehaviour
+{
+    [SerializeField] GameObject LockerPrefab;
+    [SerializeField] GameObject lockerSpawn;
+
+    public override void OnStartServer()
+    {
+        SpawnLocker();
+    }
+
+
+    public void SpawnLocker()
+    {
+        GameObject go = GameObject.Instantiate(LockerPrefab, lockerSpawn.transform.position, Quaternion.identity) as GameObject;
+        NetworkServer.Spawn(go);
+    }
+}
