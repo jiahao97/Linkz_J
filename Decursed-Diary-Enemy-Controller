@@ -1,0 +1,30 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+public class EnemyController : NetworkBehaviour
+{
+    public GameObject lockers;
+    //public bool[] lockersBoolean;          // if true = player locked inside, false mean locker is empty
+    //public int numberOfLocker;
+
+    public void Start()
+    {
+        lockers = GameObject.FindGameObjectWithTag("Locker");
+    }
+
+    private void FixedUpdate()
+    {
+        lockers = GameObject.FindGameObjectWithTag("Locker");
+    }
+
+    // Send the player into the locker
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.tag == "Player")
+        {
+            collision.transform.position = lockers.gameObject.transform.Find("WrapPoint").gameObject.transform.position;
+        }
+    }
+
+}
