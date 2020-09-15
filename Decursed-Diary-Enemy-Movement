@@ -1,0 +1,47 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.Networking;
+
+public class EnemyMovement : NetworkBehaviour
+{
+    NavMeshAgent agent;
+    public GameObject[] wayPoints;
+
+    float timeToChangeDestination = 10;
+    float timePassed = 0;
+    int currTargetIndex = 0;
+
+    public override void OnStartServer()
+    {
+
+        wayPoints = GameObject.FindGameObjectsWithTag("Player");
+        agent = GetComponent<NavMeshAgent>();
+        currTargetIndex = Random.Range(0, wayPoints.Length);
+        agent.SetDestination(wayPoints[currTargetIndex].transform.position);
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        wayPoints = GameObject.FindGameObjectsWithTag("Player");
+
+        if (!isServer)
+        {
+            return;
+        }
+        timePassed += 1f;
+        if (timePassed >= timeToChangeDestination)
+        {
+            currTargetIndex++;
+            if (currTargetIndex >= wayPoints.Length)
+            {
+                currTargetIndex = 0;
+            }
+
+            agent.SetDestination(wayPoints[currTargetIndex].transform.position);
+            timePassed = 0;
+        }
+    }
+}
