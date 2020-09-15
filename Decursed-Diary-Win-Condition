@@ -1,0 +1,38 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+
+public class Win_Condition : NetworkBehaviour
+{
+    public GameObject player;
+
+    private void FixedUpdate()
+    {
+        if (player != null)
+        {
+            if(player.GetComponent<PlayerController>().owned == true)
+            {
+                // run win condition;
+                UIManager.instance.winCanvas.enabled = true;
+                Time.timeScale = 0;
+            }
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.tag == "Player")
+        {
+            player = other.gameObject;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            player = null;
+        }
+    }
+}
