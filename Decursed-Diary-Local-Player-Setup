@@ -1,0 +1,33 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+
+public class SetupLocalPlayer : NetworkBehaviour
+{
+
+    public GameObject playerCamera;
+    public GameObject controllerCanvas;
+    public GameObject cooldowncanvas;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+
+        if (isLocalPlayer)
+        {
+            playerCamera.SetActive(true);
+            controllerCanvas.SetActive(true);
+            cooldowncanvas.SetActive(true);
+        }
+        else
+        {
+            playerCamera.SetActive(false);
+            controllerCanvas.SetActive(false);
+            cooldowncanvas.SetActive(false);
+        }
+
+    }
+
+}
