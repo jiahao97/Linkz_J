@@ -1,0 +1,26 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class JoyStickMovement : MonoBehaviour
+{
+
+    private Rigidbody rb;
+    protected FixedJoystick joystick;
+    protected Joybutton joybutton;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        joystick = FindObjectOfType<FixedJoystick>();
+        joybutton = FindObjectOfType<Joybutton>();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        rb.velocity = new Vector3(joystick.Horizontal * 10f , rb.velocity.y,
+                                                     joystick.Vertical * 10f );
+    }
+}
