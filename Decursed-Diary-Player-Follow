@@ -1,0 +1,72 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerFollow : MonoBehaviour
+{
+    public Transform PlayerTransform;
+
+    private Vector3 _cameraOffset;
+
+    //Transform target;
+    float distance;
+
+    [Range(0.01f, 1.0f)]
+    public float SmoothFactor = 0.8f;
+
+    public bool LookAtPlayer = false;
+
+    public Transform obstruction;
+    float zoomSpeed = 2f;
+
+    void Awake()
+    {
+        transform.parent = null;
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        SmoothFactor = 0.8f;
+        obstruction = PlayerTransform; 
+        _cameraOffset = transform.position - PlayerTransform.position;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (PlayerTransform != null)
+        {
+            // Camera follow the player
+            Vector3 newPos = PlayerTransform.position + _cameraOffset;
+            transform.position = Vector3.Slerp(transform.position, newPos, SmoothFactor);
+
+            if (LookAtPlayer)
+                transform.LookAt(PlayerTransform);
+            ViewObstructed();
+        }
+        else
+        {
+             Destroy(gameObject);
+        }
+    }
+
+    void ViewObstructed()
+    {
+        RaycastHit hit;
+
+        if(Physics.Raycast(transform.position, PlayerTransform.position - transform.position, out hit, 10f))
+        {
+            if(hit.collider.gameObject.tag != ("Player"))
+            {
+                obstruction = hit.transform;
+                obstruction.gameObject.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+            }
+            else
+            {
+                obstruction.gameObject.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            }
+        }
+    }
+    
+}
