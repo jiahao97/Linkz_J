@@ -1,0 +1,40 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Networking;
+
+public class Cooldown : NetworkBehaviour
+{
+    public Image imageCooldown;
+    public Text text;
+    public bool isCooldown = true;
+
+    public float cooldown = 5;
+    public float Imgcooldown = 5;
+    
+    // Update is called once per frame
+    void Update()
+    {
+        if (isCooldown)
+        {
+            imageCooldown.fillAmount += 1 / Imgcooldown * Time.deltaTime;            // start cooldown for image UI
+            cooldown -= 1 * Time.deltaTime;                                          // minus the number 
+
+            text.text = cooldown.ToString("0");                                      // show the Cooldown number
+
+            // finish Cooldown and reset
+            if (imageCooldown.fillAmount >= 1)
+            {
+                imageCooldown.fillAmount = 0;
+                cooldown = 5;
+
+                GetComponentInParent<PlayerController>().owned = false;
+                GetComponentInParent<PlayerController>().stunned = true;
+                GetComponentInParent<PlayerController>().CmdSpawnDiary();
+                this.gameObject.SetActive(false);            // Destroy the canvas
+            }
+        }
+    }
+
+}
