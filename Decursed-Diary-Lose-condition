@@ -1,0 +1,49 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+using UnityEngine.UI;
+public class Lose_condition : NetworkBehaviour
+{
+    public int playercount;
+    public int player = 0;
+
+
+    private void Start()
+    {
+        
+        playercount = Prototype.NetworkLobby.LobbyPlayerList._instance.GetLobbyPlayer();
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        if( player >= playercount)
+        {
+            Time.timeScale = 0;
+            UIManager.instance.gameoverCanvas.enabled = true;
+            
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.tag == ("Player"))
+        {
+            if(other.gameObject != null)
+            {
+                other.gameObject.GetComponent<PlayerController>().lockup = true;
+                player += 1;
+            }
+
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.tag == ("Player"))
+        {
+            other.gameObject.GetComponent<PlayerController>().lockup = false;
+            player -= 1; 
+        }
+    }
+}
