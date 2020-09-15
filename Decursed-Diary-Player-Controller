@@ -1,0 +1,174 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityStandardAssets.CrossPlatformInput;
+using UnityEngine.Networking;
+
+
+public class PlayerController : NetworkBehaviour
+{
+    float speed = 10.0f;
+    float rotationSpeed = 100.0f;
+
+    public GameObject otherPlayer;
+    private Rigidbody rb;
+
+    protected FixedJoystick joystick;
+    protected JoyButton joybutton;
+    protected Quaternion targetRotation;
+
+    public bool owned;
+    public bool stunned;
+    public GameObject Cooldown_Icon;
+    public GameObject diary;
+    public GameObject locker;
+    public GameObject cases;
+    public GameObject lockerspawner;
+    private Cooldown cd;
+    public bool lockup;
+    public bool saveplayer;
+    public bool spawnlocker;
+
+    private void Start()
+    {
+        cd = GetComponentInChildren<Cooldown>();
+        rb = GetComponent<Rigidbody>();
+        joystick = FindObjectOfType<FixedJoystick>();
+        joybutton = FindObjectOfType<JoyButton>();
+        owned = false;
+        lockup = false;
+        spawnlocker = false;
+
+
+    }
+
+    private void FixedUpdate()
+    {
+        // if this is your game object
+        if (!isLocalPlayer) { return; }
+
+        // Player can move if it's no stunned
+        if (stunned == false)
+        {
+            playerMovement();
+        }
+        else
+        {
+            StartCoroutine(Recover());
+            rb.velocity = new Vector3(0, 0, 0);
+        }
+
+        if (owned == true)
+        {
+            Cooldown_Icon.SetActive(true);
+
+            if (joybutton.pressed)
+            {
+                owned = false;
+                CmdSpawnDiary();
+            }
+        }
+        else
+        {
+            Cooldown_Icon.SetActive(false);
+        }
+
+        // save the player
+        if (lockup == false && saveplayer == true)
+        {
+            if (joybutton.pressed)
+            {
+                CmdSaveOtherPlayer();
+            }
+        }
+
+    }
+
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            otherPlayer = other.gameObject;
+        }
+
+        if (other.tag == "Locker")
+        {
+            locker = GameObject.FindGameObjectWithTag("Locker");
+            lockerspawner = GameObject.FindGameObjectWithTag("LockerSpawner");
+            saveplayer = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            otherPlayer = null;
+        }
+
+        if (other.tag == "Locker")
+        {
+            saveplayer = false;
+        }
+    }
+
+    private void playerMovement()
+    {
+
+        float translation = CrossPlatformInputManager.GetAxis("Vertical") * speed;
+        float rotation = CrossPlatformInputManager.GetAxis("Horizontal") * rotationSpeed;
+
+        translation *= Time.deltaTime;
+        rotation *= Time.deltaTime;
+        transform.Translate(0, 0, translation);
+        transform.Rotate(0, rotation, 0);
+
+        // joystick movement
+        rb.velocity = new Vector3(joystick.Horizontal * 6f, rb.velocity.y,
+                                                     joystick.Vertical * 6f);
+
+        // Player Rotation 
+        var input = new Vector3(joystick.Horizontal, 0, joystick.Vertical);
+        if (input != Vector3.zero)
+        {
+            targetRotation = Quaternion.LookRotation(input);
+        }
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 500f * Time.deltaTime);
+
+    }
+
+    IEnumerator Recover()                           // Recover from stun
+    {
+        yield return new WaitForSeconds(2);         // Cooldown for stun
+        stunned = false;                         // Set back the boolean for player 
+    }
+    IEnumerator SpawnCaseLocker()
+    {
+        yield return new WaitForSeconds(2);
+        if (spawnlocker)
+        {
+            GameObject go = GameObject.Instantiate(cases, lockerspawner.transform.position, Quaternion.identity) as GameObject;
+            NetworkServer.Spawn(go);
+            spawnlocker = false;
+        }
+
+    }
+    [Command]
+    public void CmdSpawnDiary()
+    {
+        //network spawn
+        GameObject go = GameObject.Instantiate(diary, new Vector3(this.transform.position.x + Random.Range(-3, 3), this.transform.position.y + 2f,
+                                              this.transform.position.z + Random.Range(-3, 3)), Quaternion.identity) as GameObject;
+        NetworkServer.Spawn(go);
+    }
+
+    [Command]
+    public void CmdSaveOtherPlayer()
+    {
+        Destroy(locker);
+        saveplayer = false;
+        spawnlocker = true;
+        StartCoroutine(SpawnCaseLocker());
+    }
+}
